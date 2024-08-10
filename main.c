@@ -1,10 +1,4 @@
 #include "main.h"
-#include "helper.h"
-#include <ctype.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
@@ -20,30 +14,36 @@ int main(int argc, char *argv[]) {
     char *token;
     char **array;
 
+    char* path;
+
     while(1) {
-        write(STDOUT_FILENO, "ccsh> ", 6);
+        if(isatty(STDERR_FILENO))
+            write(STDOUT_FILENO, "ccsh> ", 6);
 
         char_read = getline(&BUF, &count, stdin);
+
         if(char_read == -1) {
-            perror("Exiting Shell");
             exit(1);
         }
 
         if(strcmp(toLower(BUF), "exit") == 0) {
-            printf("Goodbye");
+            printf("Goodbye\n");
             free(BUF);
             exit(1);
         }
 
-        token = strtok(BUF, " \n");
         array = malloc(sizeof(char *) * 1024);
+        token = strtok(BUF, " \n");
+
         int i = 0;
-        while (token) {
+        while (token != NULL) {
             array[i] = token;
             token = strtok(NULL, " \n");
             i++;
         }
         array[i] = NULL;
+
+        path = get_file_path(array[0]);
 
         child_pid = fork();
         if(child_pid == -1) {
@@ -52,19 +52,13 @@ int main(int argc, char *argv[]) {
         }
 
         if(child_pid == 0) {
-            if(execve(array[0], array, NULL) == -1) {
-                perror("Failed to execute");
-                exit(97);
-            }
+            if(execve(path, array, NULL) == -1) {}
         } else {
             wait(&status);
         }
-
-        // token = strtok(BUF, " \n");
-
-        // printf("%s", BUF);
     }
     free(BUF);
+    free(path);
 
     return 0;
 }
